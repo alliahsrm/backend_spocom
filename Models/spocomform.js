@@ -1,4 +1,3 @@
-// Models/spocomform.js
 const mongoose = require("mongoose");
 
 const AlbumSchema = new mongoose.Schema({
