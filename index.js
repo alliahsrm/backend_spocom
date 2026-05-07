@@ -1,33 +1,43 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const User = require("./Models/User"); // Import User Model
+const Album = require("./Models/spocomform"); // Import Album Model
+
 const app = express();
-
-app.get("/", (req, res) => {
-  res.send("Backend is officially running!");
-});
-
-//to mongodb
-mongoose
-  .connect("mongodb://alliahsrm:happybirthday@ac-iq2xxjs-shard-00-00.eloblkc.mongodb.net:27017,ac-iq2xxjs-shard-00-01.eloblkc.mongodb.net:27017,ac-iq2xxjs-shard-00-02.eloblkc.mongodb.net:27017/?ssl=true&replicaSet=atlas-tzl0ct-shard-0&authSource=admin&appName=spocomDB")
-  .then(() => console.log("MongoDB Connected"))
-  .catch((error) => {
-    console.error("MongoDB error:", error.message);
-    process.exit(1);
-  });
-
-//middleware
 app.use(cors());
 app.use(express.json());
 
-//import API
-const saveAlbum = require('./API/save')
+// 1. LOGIN ROUTE (Checks DB for user)
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const user = await User.findOne({ username, password });
+    if (user) {
+      res.json({ success: true, userId: user._id });
+    } else {
+      res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-//use api
+// 2. GET USER ALBUMS (Filters by userId)
+app.get("/api/albums/:userId", async (req, res) => {
+  try {
+    const userAlbums = await Album.find({ userId: req.params.userId });
+    res.json(userAlbums);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Your existing connection and setup...
+mongoose.connect("mongodb://alliahsrm:happybirthday@ac-iq2xxjs-shard-00-00.eloblkc.mongodb.net:27017,ac-iq2xxjs-shard-00-01.eloblkc.mongodb.net:27017,ac-iq2xxjs-shard-00-02.eloblkc.mongodb.net:27017/?ssl=true&replicaSet=atlas-tzl0ct-shard-0&authSource=admin&appName=spocomDB")
+  .then(() => console.log("MongoDB Connected"));
+
+const saveAlbum = require('./API/save');
 app.use("/save", saveAlbum);
 
-//start server
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+app.listen(5000, () => console.log("Server running on port 5000"));
