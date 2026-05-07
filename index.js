@@ -1,14 +1,44 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const User = require("./Models/User"); // Import User Model
-const Album = require("./Models/spocomform"); // Import Album Model
+const User = require("./Models/Users"); // Ensure this file exists
+const Album = require("./Models/spocomform"); // Ensure this file exists
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// 1. LOGIN ROUTE (Checks DB for user)
+// MongoDB Connection
+mongoose
+  .connect("mongodb://alliahsrm:happybirthday@ac-pvsdhso-shard-00-00.neffb5j.mongodb.net:27017,ac-pvsdhso-shard-00-01.neffb5j.mongodb.net:27017,ac-pvsdhso-shard-00-02.neffb5j.mongodb.net:27017/?ssl=true&replicaSet=atlas-m7bzb9-shard-0&authSource=admin&appName=spocomdb")
+  .then(() => console.log("MongoDB Connected"))
+  .catch((error) => {
+    console.error("MongoDB error:", error.message);
+    process.exit(1);
+  });
+
+// --- AUTHENTICATION ROUTES ---
+
+// 1. Sign Up Route
+app.post("/api/register", async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "Username already taken" });
+    }
+
+    const newUser = new User({ username, password });
+    await newUser.save();
+    res.json({ success: true, message: "User registered successfully!" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Login Route
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -19,11 +49,13 @@ app.post("/api/login", async (req, res) => {
       res.status(401).json({ success: false, message: "Invalid credentials" });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 2. GET USER ALBUMS (Filters by userId)
+// --- ALBUM ROUTES ---
+
+// 3. Get Albums for a Specific User
 app.get("/api/albums/:userId", async (req, res) => {
   try {
     const userAlbums = await Album.find({ userId: req.params.userId });
@@ -33,11 +65,18 @@ app.get("/api/albums/:userId", async (req, res) => {
   }
 });
 
-// Your existing connection and setup...
-mongoose.connect("mongodb://alliahsrm:happybirthday@ac-iq2xxjs-shard-00-00.eloblkc.mongodb.net:27017,ac-iq2xxjs-shard-00-01.eloblkc.mongodb.net:27017,ac-iq2xxjs-shard-00-02.eloblkc.mongodb.net:27017/?ssl=true&replicaSet=atlas-tzl0ct-shard-0&authSource=admin&appName=spocomDB")
-  .then(() => console.log("MongoDB Connected"));
-
+// Import and use your existing save/delete logic
+// Ensure your 'save.js' is updated to handle the userId in the request body
 const saveAlbum = require('./API/save');
 app.use("/save", saveAlbum);
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+// Base Route
+app.get("/", (req, res) => {
+  res.send("SpoCom Backend is running and connected to MongoDB!");
+});
+
+// Start Server
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

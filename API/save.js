@@ -1,50 +1,52 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const Album = require("../Models/spocomform");
+const Album = require('../Models/spocomform');
 
-// CREATE album
-router.post("/", async (req, res) => {
-  try {
-    const album = new Album(req.body);
-    const saved = await album.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+// POST: Save a new album
+router.post('/', async (req, res) => {
+    try {
+        const { userId, spotifyLink, albumTitle, artist, favSong, rating, comment, cover } = req.body;
+        
+        const newAlbum = new Album({
+            userId, // This is the most important part!
+            spotifyLink,
+            albumTitle,
+            artist,
+            favSong,
+            rating,
+            comment,
+            cover
+        });
+
+        const savedAlbum = await newAlbum.save();
+        res.status(201).json(savedAlbum);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
 });
 
-// GET all albums
-router.get("/", async (req, res) => {
-  try {
-    const albums = await Album.find().sort({ createdAt: -1 });
-    res.json(albums);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// PUT: Update an existing album
+router.put('/:id', async (req, res) => {
+    try {
+        const updatedAlbum = await Album.findByIdAndUpdate(
+            req.params.id, 
+            req.body, 
+            { new: true }
+        );
+        res.json(updatedAlbum);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
 });
 
-// UPDATE album
-router.put("/:id", async (req, res) => {
-  try {
-    const updated = await Album.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// DELETE album
-router.delete("/:id", async (req, res) => {
-  try {
-    await Album.findByIdAndDelete(req.params.id);
-    res.json({ message: "Album deleted" });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+// DELETE: Remove an album
+router.delete('/:id', async (req, res) => {
+    try {
+        await Album.findByIdAndDelete(req.params.id);
+        res.json({ message: "Album deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
 module.exports = router;
